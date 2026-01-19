@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, X, Filter } from 'lucide-react';
-import { supabase, type User } from '@/lib/supabase';
+import { type User } from '@/lib/supabase';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -58,8 +58,13 @@ export function SearchFilters({ onFilterChange }: SearchFiltersProps) {
   }, [search, assignee, priority]);
 
   async function loadUsers() {
-    const { data } = await supabase.from('users').select('*').order('name');
-    if (data) setUsers(data);
+    try {
+      const response = await fetch('/api/users');
+      const { data } = await response.json();
+      if (data) setUsers(data);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
   }
 
   function clearFilters() {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase, type CardWithDetails, type User, type Comment, type Tag, type Subtask, type CardActivity } from '@/lib/supabase';
+import { type CardWithDetails, type User, type Comment, type Tag, type Subtask, type CardActivity } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
 import {
   Dialog,
@@ -86,72 +86,35 @@ export function CardDetailModal({
   async function loadCard() {
     if (!cardId) return;
 
-    const { data: cardData } = await supabase
-      .from('cards')
-      .select('*')
-      .eq('id', cardId)
-      .single();
+    try {
+      const response = await fetch(`/api/cards/${cardId}/details`);
+      const { data } = await response.json();
 
-    if (cardData) {
-      const { data: assignee } = cardData.assignee_id
-        ? await supabase.from('users').select('*').eq('id', cardData.assignee_id).maybeSingle()
-        : { data: null };
-
-      const { data: comments } = await supabase
-        .from('comments')
-        .select('*, author:users!comments_author_id_fkey(*)')
-        .eq('card_id', cardId)
-        .order('created_at', { ascending: true });
-
-      const { data: cardTags } = await supabase
-        .from('card_tags')
-        .select('tag_id')
-        .eq('card_id', cardId);
-
-      const tagIds = cardTags?.map(ct => ct.tag_id) || [];
-      const { data: tags } = tagIds.length > 0
-        ? await supabase.from('tags').select('*').in('id', tagIds)
-        : { data: [] };
-
-      const { data: subtasks } = await supabase
-        .from('subtasks')
-        .select('*')
-        .eq('card_id', cardId)
-        .order('position');
-
-      const { data: activities } = await supabase
-        .from('card_activities')
-        .select('*, user:users!card_activities_user_id_fkey(*)')
-        .eq('card_id', cardId)
-        .order('created_at', { ascending: false });
-
-      setCard({
-        ...cardData,
-        assignee,
-        comments: comments || [],
-        tags: tags || [],
-        subtasks: subtasks || [],
-        activities: activities || [],
-      });
+      if (data) {
+        setCard(data);
+      }
+    } catch (error) {
+      console.error('Error loading card:', error);
     }
   }
 
   async function loadAvailableTags() {
     if (!card) return;
     
-    const { data: boardData } = await supabase
-      .from('columns')
-      .select('board_id')
-      .eq('id', card.column_id)
-      .single();
+    try {
+      // Récupérer le board_id depuis la colonne
+      const columnResponse = await fetch(`/api/boards?column_id=${card.column_id}`);
+      const { data: boardData } = await columnResponse.json();
 
-    if (boardData) {
-      const { data: tags } = await supabase
-        .from('tags')
-        .select('*')
-        .eq('board_id', boardData.board_id);
-      
-      setAvailableTags(tags || []);
+      if (boardData && boardData.length > 0) {
+        const boardId = boardData[0].id;
+        const tagsResponse = await fetch(`/api/tags?board_id=${boardId}`);
+        const { data: tags } = await tagsResponse.json();
+        
+        setAvailableTags(tags || []);
+      }
+    } catch (error) {
+      console.error('Error loading available tags:', error);
     }
   }
 
@@ -162,21 +125,34 @@ export function CardDetailModal({
   }, [card]);
 
   async function loadUsers() {
-    const { data } = await supabase.from('users').select('*').order('name');
-    if (data) setUsers(data);
+    try {
+      const response = await fetch('/api/users');
+      const { data } = await response.json();
+      if (data) setUsers(data);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
   }
 
   async function createActivity(actionType: string, fieldName?: string, oldValue?: string, newValue?: string) {
     if (!cardId || !currentUser) return;
 
-    await supabase.from('card_activities').insert({
-      card_id: cardId,
-      user_id: currentUser.id,
-      action_type: actionType,
-      field_name: fieldName || null,
-      old_value: oldValue || null,
-      new_value: newValue || null,
-    });
+    try {
+      await fetch('/api/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_id: cardId,
+          user_id: currentUser.id,
+          action_type: actionType,
+          field_name: fieldName || null,
+          old_value: oldValue || null,
+          new_value: newValue || null,
+        }),
+      });
+    } catch (error) {
+      console.error('Error creating activity:', error);
+    }
   }
 
   async function updateCard() {
@@ -207,8 +183,15 @@ export function CardDetailModal({
     }
 
     if (Object.keys(updates).length > 0) {
-      updates.updated_at = new Date().toISOString();
-      await supabase.from('cards').update(updates).eq('id', cardId);
+      try {
+        await fetch(`/api/cards/${cardId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+      } catch (error) {
+        console.error('Error updating card:', error);
+      }
     }
 
     onUpdate();
@@ -217,43 +200,67 @@ export function CardDetailModal({
 
   async function deleteCard() {
     if (!cardId) return;
-    await supabase.from('cards').delete().eq('id', cardId);
-    onUpdate();
-    onOpenChange(false);
+    try {
+      await fetch(`/api/cards/${cardId}`, {
+        method: 'DELETE',
+      });
+      onUpdate();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error deleting card:', error);
+    }
   }
 
   async function addComment() {
     if (!cardId || !newComment.trim() || !currentUser) return;
 
-    await supabase.from('comments').insert({
-      card_id: cardId,
-      author_id: currentUser.id,
-      text: newComment,
-    });
+    try {
+      await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_id: cardId,
+          author_id: currentUser.id,
+          text: newComment,
+        }),
+      });
 
-    setNewComment('');
-    loadCard();
+      setNewComment('');
+      loadCard();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   }
 
   async function updateComment(commentId: string) {
     if (!editingCommentText.trim()) return;
 
-    await supabase
-      .from('comments')
-      .update({
-        text: editingCommentText,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', commentId);
+    try {
+      await fetch(`/api/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: editingCommentText,
+        }),
+      });
 
-    setEditingCommentId(null);
-    setEditingCommentText('');
-    loadCard();
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      loadCard();
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
   }
 
   async function deleteComment(commentId: string) {
-    await supabase.from('comments').delete().eq('id', commentId);
-    loadCard();
+    try {
+      await fetch(`/api/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+      loadCard();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
   }
 
   function canEditComment(comment: Comment & { author: User }) {
@@ -266,68 +273,123 @@ export function CardDetailModal({
   async function createTag() {
     if (!card || !newTagName.trim()) return;
 
-    const { data: boardData } = await supabase
-      .from('columns')
-      .select('board_id')
-      .eq('id', card.column_id)
-      .single();
+    try {
+      // Récupérer le board_id depuis la colonne
+      const columnResponse = await fetch(`/api/boards?column_id=${card.column_id}`);
+      const { data: boardData } = await columnResponse.json();
 
-    if (boardData) {
-      const { data: tag } = await supabase
-        .from('tags')
-        .insert({ name: newTagName.trim(), color: newTagColor, board_id: boardData.board_id })
-        .select()
-        .single();
+      if (boardData && boardData.length > 0) {
+        const boardId = boardData[0].id;
+        
+        // Créer le tag
+        const tagResponse = await fetch('/api/tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newTagName.trim(),
+            color: newTagColor,
+            board_id: boardId,
+          }),
+        });
+        const { data: tag } = await tagResponse.json();
 
-      if (tag) {
-        await supabase.from('card_tags').insert({ card_id: card.id, tag_id: tag.id });
-        setNewTagName('');
-        loadCard();
-        loadAvailableTags();
+        if (tag) {
+          // Associer le tag à la carte
+          await fetch('/api/card-tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              card_id: card.id,
+              tag_id: tag.id,
+            }),
+          });
+          
+          setNewTagName('');
+          loadCard();
+          loadAvailableTags();
+        }
       }
+    } catch (error) {
+      console.error('Error creating tag:', error);
     }
   }
 
   async function addExistingTag(tagId: string) {
     if (!cardId || !tagId) return;
-    await supabase.from('card_tags').insert({ card_id: cardId, tag_id: tagId });
-    await loadCard();
+    try {
+      await fetch('/api/card-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_id: cardId,
+          tag_id: tagId,
+        }),
+      });
+      await loadCard();
+    } catch (error) {
+      console.error('Error adding tag:', error);
+    }
   }
 
   async function removeTag(tagId: string) {
     if (!cardId) return;
-    await supabase.from('card_tags').delete().eq('card_id', cardId).eq('tag_id', tagId);
-    loadCard();
+    try {
+      await fetch(`/api/card-tags?card_id=${cardId}&tag_id=${tagId}`, {
+        method: 'DELETE',
+      });
+      loadCard();
+    } catch (error) {
+      console.error('Error removing tag:', error);
+    }
   }
 
   async function addSubtask() {
     if (!cardId || !newSubtaskTitle.trim()) return;
 
-    const maxPosition = subtasks.length > 0 ? Math.max(...subtasks.map(s => s.position)) : 0;
-    
-    await supabase.from('subtasks').insert({
-      card_id: cardId,
-      title: newSubtaskTitle.trim(),
-      completed: false,
-      position: maxPosition + 1,
-    });
+    try {
+      const maxPosition = subtasks.length > 0 ? Math.max(...subtasks.map(s => s.position)) : 0;
+      
+      await fetch('/api/subtasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_id: cardId,
+          title: newSubtaskTitle.trim(),
+          completed: false,
+          position: maxPosition + 1,
+        }),
+      });
 
-    setNewSubtaskTitle('');
-    loadCard();
+      setNewSubtaskTitle('');
+      loadCard();
+    } catch (error) {
+      console.error('Error adding subtask:', error);
+    }
   }
 
   async function toggleSubtask(subtaskId: string, completed: boolean) {
-    await supabase
-      .from('subtasks')
-      .update({ completed })
-      .eq('id', subtaskId);
-    
-    loadCard();
+    try {
+      await fetch(`/api/subtasks/${subtaskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      });
+      
+      loadCard();
+    } catch (error) {
+      console.error('Error toggling subtask:', error);
+    }
   }
 
   async function deleteSubtask(subtaskId: string) {
-    await supabase.from('subtasks').delete().eq('id', subtaskId);
-    loadCard();
+    try {
+      await fetch(`/api/subtasks/${subtaskId}`, {
+        method: 'DELETE',
+      });
+      loadCard();
+    } catch (error) {
+      console.error('Error deleting subtask:', error);
+    }
   }
 
   if (!card) return null;

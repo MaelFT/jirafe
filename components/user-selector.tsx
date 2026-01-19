@@ -1,73 +1,98 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { supabase, type User } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { LogOut, User, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export function UserSelector() {
-  const [users, setUsers] = useState<User[]>([]);
+  const router = useRouter();
   const { currentUser, setCurrentUser } = useStore();
 
   useEffect(() => {
-    loadUsers();
+    loadCurrentUser();
   }, []);
 
-  async function loadUsers() {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .order('name');
-
-    if (data) {
-      setUsers(data);
-      if (!currentUser && data.length > 0) {
-        setCurrentUser(data[0]);
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const { user } = await response.json();
+        setCurrentUser(user);
       }
+    } catch (error) {
+      console.error('Error loading current user:', error);
     }
   }
 
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
+
+  if (!currentUser) return null;
+
   return (
-    <Select
-      value={currentUser?.id || ''}
-      onValueChange={(userId) => {
-        const user = users.find((u) => u.id === userId);
-        if (user) setCurrentUser(user);
-      }}
-    >
-      <SelectTrigger className="w-[200px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-        <SelectValue>
-          {currentUser && (
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-xs">
-                  {currentUser.avatar}
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-medium">{currentUser.name}</span>
-            </div>
-          )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {users.map((user) => (
-          <SelectItem key={user.id} value={user.id}>
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-xs">{user.avatar}</AvatarFallback>
-              </Avatar>
-              <span>{user.name}</span>
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="gap-2 px-3 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              {currentUser.avatar}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium">{currentUser.name}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {currentUser.email}
+            </span>
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled className="flex items-center gap-2">
+          <User className="h-4 w-4" />
+          <div className="flex flex-col">
+            <span className="text-sm">{currentUser.name}</span>
+            <span className="text-xs text-slate-500">{currentUser.email}</span>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <Link href="/profile">
+          <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+            <Settings className="h-4 w-4" />
+            Gérer mon compte
+          </DropdownMenuItem>
+        </Link>
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"
+        >
+          <LogOut className="h-4 w-4" />
+          Se déconnecter
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jirafe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jirafe
+      POSTGRES_PASSWORD: jirafe_dev_2024
+      POSTGRES_DB: jirafe_db
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"  # Port 5433 sur l'hôte pour éviter conflit avec PostgreSQL local
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+    command: >
+      postgres
+      -c listen_addresses='*'
+      -c max_connections=100
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jirafe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+

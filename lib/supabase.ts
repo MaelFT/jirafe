@@ -1,21 +1,48 @@
-import { createClient } from '@supabase/supabase-js';
+// MIGRATION: Utilise maintenant PostgreSQL au lieu de Supabase
+// ⚠️ NE PAS IMPORTER DIRECTEMENT database.ts côté client !
+// Les composants doivent passer par les API routes
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Réexport des types seulement
+export type { Pool } from 'pg';
 
 export type User = {
   id: string;
   name: string;
+  email: string;
   avatar: string;
   created_at: string;
+};
+
+export type Workspace = {
+  id: string;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  avatar: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkspaceMember = {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member';
+  joined_at: string;
+};
+
+export type WorkspaceWithMembers = Workspace & {
+  members: (WorkspaceMember & { user: User })[];
+  memberCount?: number;
+  boardCount?: number;
 };
 
 export type Board = {
   id: string;
   name: string;
   owner_id: string;
+  workspace_id: string;
   created_at: string;
   updated_at: string;
 };

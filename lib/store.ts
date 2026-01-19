@@ -1,10 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User } from './supabase';
+import type { User, Workspace } from './supabase';
 
 interface AppStore {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
+  currentWorkspace: Workspace | null;
+  setCurrentWorkspace: (workspace: Workspace | null) => void;
+  workspaces: Workspace[];
+  setWorkspaces: (workspaces: Workspace[]) => void;
   selectedBoardId: string | null;
   setSelectedBoardId: (boardId: string | null) => void;
   viewMode: 'board' | 'list' | 'calendar';
@@ -16,6 +20,10 @@ export const useStore = create<AppStore>()(
     (set) => ({
       currentUser: null,
       setCurrentUser: (user) => set({ currentUser: user }),
+      currentWorkspace: null,
+      setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
+      workspaces: [],
+      setWorkspaces: (workspaces) => set({ workspaces }),
       selectedBoardId: null,
       setSelectedBoardId: (boardId) => set({ selectedBoardId: boardId }),
       viewMode: 'board',

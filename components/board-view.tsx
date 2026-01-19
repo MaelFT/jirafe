@@ -16,7 +16,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove 
 } from '@dnd-kit/sortable';
-import { supabase, type BoardWithColumns, type CardWithDetails } from '@/lib/supabase';
+import { type BoardWithColumns, type CardWithDetails } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
 import { BoardColumn } from './board-column';
 import { TaskCard } from './task-card';
@@ -35,6 +35,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 
 export function BoardView() {
@@ -49,6 +56,7 @@ export function BoardView() {
   const [newCardColumnId, setNewCardColumnId] = useState<string | null>(null);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [newCardDescription, setNewCardDescription] = useState('');
+  const [newCardPriority, setNewCardPriority] = useState<'P0' | 'P1' | 'P2' | 'P3'>('P3');
   const [newColumnName, setNewColumnName] = useState('');
   const [filters, setFilters] = useState({ search: '', assignee: 'all', priority: 'all' });
 
@@ -63,72 +71,16 @@ export function BoardView() {
   const loadBoard = useCallback(async () => {
     if (!selectedBoardId) return;
 
-    const { data: boardData } = await supabase
-      .from('boards')
-      .select('*')
-      .eq('id', selectedBoardId)
-      .single();
+    try {
+      const response = await fetch(`/api/boards/${selectedBoardId}`);
+      const { data } = await response.json();
 
-    if (!boardData) return;
-
-    const { data: columns } = await supabase
-      .from('columns')
-      .select('*')
-      .eq('board_id', selectedBoardId)
-      .order('position');
-
-    if (!columns) return;
-
-    const columnsWithCards = await Promise.all(
-      columns.map(async (column) => {
-        const { data: cards } = await supabase
-          .from('cards')
-          .select('*')
-          .eq('column_id', column.id)
-          .order('position');
-
-        if (!cards) return { ...column, cards: [] };
-
-        const cardsWithDetails = await Promise.all(
-          cards.map(async (card) => {
-            const { data: assignee } = card.assignee_id
-              ? await supabase
-                  .from('users')
-                  .select('*')
-                  .eq('id', card.assignee_id)
-                  .maybeSingle()
-              : { data: null };
-
-            const { data: comments } = await supabase
-              .from('comments')
-              .select('*, author:users!comments_author_id_fkey(*)')
-              .eq('card_id', card.id);
-
-            const { data: cardTags } = await supabase
-              .from('card_tags')
-              .select('tag_id')
-              .eq('card_id', card.id);
-
-            const tagIds = cardTags?.map(ct => ct.tag_id) || [];
-            const { data: tags } = tagIds.length > 0
-              ? await supabase.from('tags').select('*').in('id', tagIds)
-              : { data: [] };
-
-            const { data: subtasks } = await supabase
-              .from('subtasks')
-              .select('*')
-              .eq('card_id', card.id)
-              .order('position');
-
-            return { ...card, assignee, comments: comments || [], tags: tags || [], subtasks: subtasks || [] };
-          })
-        );
-
-        return { ...column, cards: cardsWithDetails };
-      })
-    );
-
-    setBoard({ ...boardData, columns: columnsWithCards });
+      if (data) {
+        setBoard(data);
+      }
+    } catch (error) {
+      console.error('Error loading board:', error);
+    }
   }, [selectedBoardId]);
 
   const applyFilters = useCallback(() => {
@@ -175,11 +127,16 @@ export function BoardView() {
   }, [board, filters, applyFilters]);
 
   async function updateColumnName(columnId: string, name: string) {
-    await supabase
-      .from('columns')
-      .update({ name })
-      .eq('id', columnId);
-    await loadBoard();
+    try {
+      await fetch(`/api/columns/${columnId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      await loadBoard();
+    } catch (error) {
+      console.error('Error updating column name:', error);
+    }
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -267,7 +224,11 @@ export function BoardView() {
         
         await Promise.all(
           newColumns.map((col, index) =>
-            supabase.from('columns').update({ position: index }).eq('id', col.id)
+            fetch(`/api/columns/${col.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ position: index }),
+            })
           )
         );
       }
@@ -292,7 +253,11 @@ export function BoardView() {
       const newCards = arrayMove(activeCardColumn.cards, activeIndex, overIndex);
       await Promise.all(
         newCards.map((card, index) =>
-          supabase.from('cards').update({ position: index }).eq('id', card.id)
+          fetch(`/api/cards/${card.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ position: index }),
+          })
         )
       );
     } else {
@@ -300,18 +265,23 @@ export function BoardView() {
         ? overColumn.cards.length
         : overColumn.cards.findIndex((c) => c.id === overId);
 
-      await supabase
-        .from('cards')
-        .update({ column_id: overColumn.id, position: overIndex })
-        .eq('id', activeId);
+      await fetch(`/api/cards/${activeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ column_id: overColumn.id, position: overIndex }),
+      });
 
       if (currentUser) {
-        await supabase.from('card_activities').insert({
-          card_id: activeId,
-          user_id: currentUser.id,
-          action_type: 'moved',
-          old_value: activeCardColumn.name,
-          new_value: overColumn.name,
+        await fetch('/api/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            card_id: activeId,
+            user_id: currentUser.id,
+            action_type: 'moved',
+            old_value: activeCardColumn.name,
+            new_value: overColumn.name,
+          }),
         });
       }
 
@@ -320,7 +290,11 @@ export function BoardView() {
       
       await Promise.all(
         updatedOverCards.map((card, index) =>
-          supabase.from('cards').update({ position: index }).eq('id', card.id)
+          fetch(`/api/cards/${card.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ position: index }),
+          })
         )
       );
     }
@@ -331,52 +305,72 @@ export function BoardView() {
   async function createCard() {
     if (!newCardColumnId || !newCardTitle.trim() || !currentUser) return;
 
-    const { data: column } = await supabase
-      .from('columns')
-      .select('cards:cards(position)')
-      .eq('id', newCardColumnId)
-      .single();
+    try {
+      // Calculer la position (nombre de cartes dans la colonne)
+      const column = board?.columns.find(c => c.id === newCardColumnId);
+      const position = column?.cards?.length || 0;
 
-    const position = column?.cards?.length || 0;
-
-    const { data: newCard } = await supabase.from('cards').insert({
-      column_id: newCardColumnId,
-      title: newCardTitle,
-      description: newCardDescription,
-      assignee_id: currentUser.id,
-      priority: 'P3',
-      position,
-    }).select().single();
-
-    if (newCard) {
-      await supabase.from('card_activities').insert({
-        card_id: newCard.id,
-        user_id: currentUser.id,
-        action_type: 'created',
+      // Créer la carte
+      const cardResponse = await fetch('/api/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          column_id: newCardColumnId,
+          title: newCardTitle,
+          description: newCardDescription,
+          assignee_id: currentUser.id,
+          priority: newCardPriority,
+          position,
+        }),
       });
-    }
+      const { data: newCard } = await cardResponse.json();
 
-    setNewCardTitle('');
-    setNewCardDescription('');
-    setNewCardColumnId(null);
-    setIsCreatingCard(false);
-    loadBoard();
+      if (newCard) {
+        // Créer l'activité
+        await fetch('/api/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            card_id: newCard.id,
+            user_id: currentUser.id,
+            action_type: 'created',
+          }),
+        });
+      }
+
+      setNewCardTitle('');
+      setNewCardDescription('');
+      setNewCardPriority('P3');
+      setNewCardColumnId(null);
+      setIsCreatingCard(false);
+      loadBoard();
+    } catch (error) {
+      console.error('Error creating card:', error);
+    }
   }
 
   async function createColumn() {
     if (!selectedBoardId || !newColumnName.trim()) return;
 
-    const position = board?.columns.length || 0;
+    try {
+      const position = board?.columns.length || 0;
 
-    await supabase.from('columns').insert({
-      board_id: selectedBoardId,
-      name: newColumnName,
-      position,
-    });
+      await fetch('/api/columns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          board_id: selectedBoardId,
+          name: newColumnName,
+          position,
+        }),
+      });
 
-    setNewColumnName('');
-    setIsCreatingColumn(false);
-    loadBoard();
+      setNewColumnName('');
+      setIsCreatingColumn(false);
+      loadBoard();
+    } catch (error) {
+      console.error('Error creating column:', error);
+    }
   }
 
   if (!selectedBoardId) {
@@ -454,7 +448,7 @@ export function BoardView() {
                   column={activeColumn}
                   onAddCard={() => {}}
                   onCardClick={() => {}}
-                  onUpdateColumnName={() => {}}
+                  onUpdateColumnName={async () => {}}
                 />
               </div>
             ) : null}
@@ -490,6 +484,40 @@ export function BoardView() {
                 rows={3}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-card-priority">Priorité</Label>
+              <Select value={newCardPriority} onValueChange={(value: any) => setNewCardPriority(value)}>
+                <SelectTrigger id="new-card-priority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="P0">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                      <span>P0 - Critical</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="P1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-orange-500"></span>
+                      <span>P1 - High</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="P2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                      <span>P2 - Medium</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="P3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-slate-400"></span>
+                      <span>P3 - Low</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
@@ -497,6 +525,7 @@ export function BoardView() {
                   setIsCreatingCard(false);
                   setNewCardTitle('');
                   setNewCardDescription('');
+                  setNewCardPriority('P3');
                 }}
               >
                 Cancel

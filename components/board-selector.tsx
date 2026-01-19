@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
-import { supabase, type Board } from '@/lib/supabase';
+import { type Board } from '@/lib/supabase';
 import {
   Select,
   SelectContent,
@@ -27,69 +27,98 @@ export function BoardSelector() {
   const [isCreating, setIsCreating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');
-  const { currentUser, selectedBoardId, setSelectedBoardId } = useStore();
+  const { currentUser, currentWorkspace, selectedBoardId, setSelectedBoardId } = useStore();
 
   useEffect(() => {
     loadBoards();
-  }, []);
+  }, [currentWorkspace]);
 
   async function loadBoards() {
-    const { data } = await supabase
-      .from('boards')
-      .select('*')
-      .order('created_at', { ascending: false });
+    if (!currentWorkspace) {
+      setBoards([]);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/boards?workspace_id=${currentWorkspace.id}`);
+      const { data } = await response.json();
 
-    if (data) {
-      setBoards(data);
-      if (!selectedBoardId && data.length > 0) {
-        setSelectedBoardId(data[0].id);
+      if (data) {
+        setBoards(data);
+        if (!selectedBoardId && data.length > 0) {
+          setSelectedBoardId(data[0].id);
+        }
       }
+    } catch (error) {
+      console.error('Error loading boards:', error);
+      setBoards([]);
     }
   }
 
   async function createBoard() {
-    if (!newBoardName.trim() || !currentUser) return;
+    if (!newBoardName.trim() || !currentUser || !currentWorkspace) return;
 
-    const { data: board } = await supabase
-      .from('boards')
-      .insert({
-        name: newBoardName,
-        owner_id: currentUser.id,
-      })
-      .select()
-      .single();
+    try {
+      // Créer le board
+      const boardResponse = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newBoardName,
+          workspace_id: currentWorkspace.id,
+        }),
+      });
+      const { data: board } = await boardResponse.json();
 
-    if (board) {
-      const defaultColumns = [
-        { name: 'To Do', position: 0 },
-        { name: 'In Progress', position: 1 },
-        { name: 'Done', position: 2 },
-      ];
+      if (board) {
+        // Créer les colonnes par défaut
+        const defaultColumns = [
+          { name: 'To Do', position: 0 },
+          { name: 'In Progress', position: 1 },
+          { name: 'Done', position: 2 },
+        ];
 
-      await supabase.from('columns').insert(
-        defaultColumns.map((col) => ({
-          board_id: board.id,
-          name: col.name,
-          position: col.position,
-        }))
-      );
+        for (const col of defaultColumns) {
+          await fetch('/api/columns', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              board_id: board.id,
+              name: col.name,
+              position: col.position,
+            }),
+          });
+        }
 
-      setBoards([board, ...boards]);
-      setSelectedBoardId(board.id);
-      setNewBoardName('');
-      setIsCreating(false);
+        setBoards([board, ...boards]);
+        setSelectedBoardId(board.id);
+        setNewBoardName('');
+        setIsCreating(false);
+      }
+    } catch (error) {
+      console.error('Error creating board:', error);
     }
   }
 
   async function deleteBoard(boardId: string) {
-    await supabase.from('boards').delete().eq('id', boardId);
-    
-    const updatedBoards = boards.filter(b => b.id !== boardId);
-    setBoards(updatedBoards);
-    
-    if (selectedBoardId === boardId) {
-      setSelectedBoardId(updatedBoards.length > 0 ? updatedBoards[0].id : null);
+    try {
+      await fetch(`/api/boards/${boardId}`, {
+        method: 'DELETE',
+      });
+      
+      const updatedBoards = boards.filter(b => b.id !== boardId);
+      setBoards(updatedBoards);
+      
+      if (selectedBoardId === boardId) {
+        setSelectedBoardId(updatedBoards.length > 0 ? updatedBoards[0].id : null);
+      }
+    } catch (error) {
+      console.error('Error deleting board:', error);
     }
+  }
+
+  if (!currentWorkspace) {
+    return <div className="text-sm text-slate-500">Sélectionnez un espace de travail</div>;
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { useStore } from '@/lib/store';
 import { UserSelector } from '@/components/user-selector';
+import { WorkspaceSelector } from '@/components/workspace-selector';
 import { BoardSelector } from '@/components/board-selector';
 import { BoardView } from '@/components/board-view';
 import { Layers3, LayoutGrid, List, Calendar } from 'lucide-react';
@@ -59,6 +60,7 @@ export default function Home() {
               Calendar
             </Button>
           </div>
+          <WorkspaceSelector />
           <BoardSelector />
           <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
           <UserSelector />
