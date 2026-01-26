@@ -31,15 +31,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Erreur lors de la connexion');
+        setError(data.error || 'Login error');
         setLoading(false);
         return;
       }
 
-      // Forcer un rechargement complet pour que le middleware détecte le nouveau cookie
+      // Force a full reload so the middleware detects the new cookie
       window.location.href = '/';
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
@@ -54,9 +54,9 @@ export default function LoginPage() {
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl">Connexion à Jirafe</CardTitle>
+            <CardTitle className="text-2xl">Login to Jirafe</CardTitle>
             <CardDescription>
-              Connectez-vous pour accéder à vos projets
+              Log in to access your projects
             </CardDescription>
           </div>
         </CardHeader>
@@ -74,7 +74,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="votre@email.com"
+                placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -83,7 +83,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -100,16 +100,16 @@ export default function LoginPage() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Connexion...' : 'Se connecter'}
+              {loading ? 'Logging in...' : 'Log in'}
             </Button>
 
             <div className="text-center text-sm text-slate-600 dark:text-slate-400">
-              Pas encore de compte ?{' '}
+              Don't have an account?{' '}
               <Link
                 href="/signup"
                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
               >
-                Créer un compte
+                Create an account
               </Link>
             </div>
           </form>
@@ -118,4 +118,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

@@ -1,8 +1,8 @@
-// MIGRATION: Utilise maintenant PostgreSQL au lieu de Supabase
-// ⚠️ NE PAS IMPORTER DIRECTEMENT database.ts côté client !
-// Les composants doivent passer par les API routes
+// Types TypeScript pour Jirafe
+// Définitions centrales des entités du domaine
+// ⚠️ Ces types sont utilisés côté client ET serveur
 
-// Réexport des types seulement
+// Type PostgreSQL Pool (pour référence)
 export type { Pool } from 'pg';
 
 export type User = {

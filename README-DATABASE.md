@@ -82,13 +82,13 @@ Tables créées :
 - `subtasks` - Sous-tâches
 - `card_activities` - Historique des modifications
 
-## 🔄 Migration depuis Supabase
+## 🏗️ Architecture
 
-Ce projet utilisait Supabase avant. Les changements effectués :
+L'application utilise PostgreSQL avec :
 
-1. ✅ Remplacement de `@supabase/supabase-js` par `postgres`
-2. ✅ Création de `lib/database.ts` pour PostgreSQL
-3. ✅ Conservation de tous les types TypeScript
+1. ✅ Client `pg` pour Node.js
+2. ✅ Fichier `lib/database.ts` pour la connexion
+3. ✅ Types TypeScript centralisés dans `lib/types.ts`
 4. ✅ Setup Docker avec `docker-compose.yml`
 5. ✅ Scripts npm pour gérer la DB facilement
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { type CardWithDetails, type User, type Comment, type Tag, type Subtask, type CardActivity } from '@/lib/supabase';
+import { type CardWithDetails, type User, type Comment, type Tag, type Subtask, type CardActivity } from '@/lib/types';
 import { useStore } from '@/lib/store';
 import {
   Dialog,
@@ -63,6 +63,9 @@ export function CardDetailModal({
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [activities, setActivities] = useState<Array<CardActivity & { user: User | null }>>([]);
+  
+  // Pattern: Optimistic UI - flag pour éviter l'écrasement des changements locaux
+  const [isLocallyEditing, setIsLocallyEditing] = useState(false);
 
   useEffect(() => {
     if (open && cardId) {
@@ -71,8 +74,9 @@ export function CardDetailModal({
     }
   }, [open, cardId]);
 
+  // Pattern: Single Source of Truth - ne réinitialiser que si pas d'édition locale en cours
   useEffect(() => {
-    if (card) {
+    if (card && !isLocallyEditing) {
       setTitle(card.title);
       setDescription(card.description || '');
       setPriority(card.priority);
@@ -155,6 +159,7 @@ export function CardDetailModal({
     }
   }
 
+  // Pattern: Optimistic UI Update - mise à jour immédiate de l'UI, sync serveur après
   async function updateCard() {
     if (!cardId || !title.trim() || !card) return;
 
@@ -184,18 +189,28 @@ export function CardDetailModal({
 
     if (Object.keys(updates).length > 0) {
       try {
+        // Pattern: Optimistic Update - mettre à jour l'état local immédiatement
+        setCard({ ...card, ...updates });
+        
+        // Envoyer au serveur
         await fetch(`/api/cards/${cardId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });
+        
+        // Pattern: Optimistic UI - recharger le board pour voir les changements
+        onUpdate();
+        
+        // Signaler la fin de l'édition locale après un court délai
+        setTimeout(() => setIsLocallyEditing(false), 300);
       } catch (error) {
         console.error('Error updating card:', error);
+        // En cas d'erreur, recharger depuis le serveur
+        loadCard();
+        onUpdate(); // Recharger le board même en cas d'erreur
       }
     }
-
-    onUpdate();
-    loadCard();
   }
 
   async function deleteCard() {
@@ -392,10 +407,26 @@ export function CardDetailModal({
     }
   }
 
+  // Fonction pour fermer la modal en sauvegardant les changements en attente
+  async function handleClose(isOpen: boolean) {
+    // Si on ferme la modal (isOpen = false)
+    if (!isOpen) {
+      // Si des changements sont en attente, sauvegarder d'abord
+      if (card && isLocallyEditing) {
+        await updateCard();
+      } else if (card) {
+        // Même si pas d'édition locale, recharger le board pour être sûr
+        onUpdate();
+      }
+    }
+    
+    onOpenChange(isOpen);
+  }
+
   if (!card) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Card Details</DialogTitle>
@@ -433,6 +464,7 @@ export function CardDetailModal({
                 <Select
                   value={priority}
                   onValueChange={(value: any) => {
+                    setIsLocallyEditing(true);
                     setPriority(value);
                     setTimeout(updateCard, 100);
                   }}
@@ -469,6 +501,7 @@ export function CardDetailModal({
                 <Select
                   value={assigneeId || 'unassigned'}
                   onValueChange={(value) => {
+                    setIsLocallyEditing(true);
                     setAssigneeId(value === 'unassigned' ? null : value);
                     setTimeout(updateCard, 100);
                   }}
@@ -518,6 +551,7 @@ export function CardDetailModal({
                 type="datetime-local"
                 value={dueDate ? new Date(dueDate).toISOString().slice(0, 16) : ''}
                 onChange={(e) => {
+                  setIsLocallyEditing(true);
                   setDueDate(e.target.value ? new Date(e.target.value).toISOString() : null);
                   setTimeout(updateCard, 100);
                 }}
@@ -872,7 +906,7 @@ export function CardDetailModal({
               <Trash2 className="h-4 w-4" />
               Delete Card
             </Button>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => handleClose(false)}>
               Close
             </Button>
           </div>

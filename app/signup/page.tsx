@@ -24,12 +24,12 @@ export default function SignupPage() {
 
     // Validation
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError('Passwords do not match');
       return;
     }
 
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setError('Password must be at least 6 characters');
       return;
     }
 
@@ -45,15 +45,15 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Erreur lors de la création du compte');
+        setError(data.error || 'Error creating account');
         setLoading(false);
         return;
       }
 
-      // Forcer un rechargement complet pour que le middleware détecte le nouveau cookie
+      // Force a full reload so the middleware detects the new cookie
       window.location.href = '/';
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
@@ -68,9 +68,9 @@ export default function SignupPage() {
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl">Créer un compte</CardTitle>
+            <CardTitle className="text-2xl">Create an Account</CardTitle>
             <CardDescription>
-              Rejoignez Jirafe et gérez vos projets efficacement
+              Join Jirafe and manage your projects efficiently
             </CardDescription>
           </div>
         </CardHeader>
@@ -84,11 +84,11 @@ export default function SignupPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="name">Nom complet</Label>
+              <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="Jean Dupont"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -101,7 +101,7 @@ export default function SignupPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="votre@email.com"
+                placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -110,7 +110,7 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -121,12 +121,12 @@ export default function SignupPage() {
                 autoComplete="new-password"
               />
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Minimum 6 caractères
+                Minimum 6 characters
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -143,16 +143,16 @@ export default function SignupPage() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Création...' : 'Créer mon compte'}
+              {loading ? 'Creating...' : 'Create Account'}
             </Button>
 
             <div className="text-center text-sm text-slate-600 dark:text-slate-400">
-              Déjà un compte ?{' '}
+              Already have an account?{' '}
               <Link
                 href="/login"
                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
               >
-                Se connecter
+                Log in
               </Link>
             </div>
           </form>
@@ -161,4 +161,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

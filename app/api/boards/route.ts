@@ -8,6 +8,21 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get('workspace_id');
+    const columnId = searchParams.get('column_id');
+
+    // Si on cherche par column_id (pour récupérer le board d'une colonne)
+    if (columnId) {
+      const result = await query(
+        `SELECT b.* FROM boards b
+         INNER JOIN columns c ON c.board_id = b.id
+         WHERE c.id = $1`,
+        [columnId]
+      );
+      return NextResponse.json({
+        data: result.rows,
+        error: null,
+      });
+    }
 
     if (!workspaceId) {
       return NextResponse.json({

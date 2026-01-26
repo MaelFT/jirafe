@@ -8,7 +8,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { type ColumnWithCards } from '@/lib/supabase';
+import { type ColumnWithCards } from '@/lib/types';
 import { TaskCard } from './task-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

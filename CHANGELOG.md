@@ -104,12 +104,11 @@ JWT_SECRET=your-super-secret-jwt-key-change-in-production-please
 
 ## [1.0.0] - Novembre 2024
 
-### Migration Supabase → PostgreSQL
+### Configuration initiale PostgreSQL
 
-- Migration complète de Supabase vers PostgreSQL local
-- Configuration Docker pour PostgreSQL
+- Configuration PostgreSQL local via Docker
 - API Routes pour toutes les opérations DB
-- Adaptation de tous les composants
+- Architecture client-serveur avec Next.js
 
 ### Fonctionnalités initiales
 

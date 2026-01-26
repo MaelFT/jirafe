@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
-import { type Board } from '@/lib/supabase';
+import { type Board } from '@/lib/types';
 import {
   Select,
   SelectContent,
@@ -27,7 +27,7 @@ export function BoardSelector() {
   const [isCreating, setIsCreating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');
-  const { currentUser, currentWorkspace, selectedBoardId, setSelectedBoardId } = useStore();
+  const { currentUser, currentWorkspace, selectedBoardId, setSelectedBoardId, setWorkspaces } = useStore();
 
   useEffect(() => {
     loadBoards();
@@ -45,8 +45,13 @@ export function BoardSelector() {
 
       if (data) {
         setBoards(data);
-        if (!selectedBoardId && data.length > 0) {
-          setSelectedBoardId(data[0].id);
+        
+        // Vérifier si le board sélectionné appartient au workspace courant
+        const selectedBoardBelongsToWorkspace = data.some((b: any) => b.id === selectedBoardId);
+        
+        if (!selectedBoardId || !selectedBoardBelongsToWorkspace) {
+          // Sélectionner le premier board du workspace ou null si aucun
+          setSelectedBoardId(data.length > 0 ? data[0].id : null);
         }
       }
     } catch (error) {
@@ -94,6 +99,13 @@ export function BoardSelector() {
         setSelectedBoardId(board.id);
         setNewBoardName('');
         setIsCreating(false);
+        
+        // Mettre à jour le compteur de boards dans les workspaces
+        const workspacesResponse = await fetch('/api/workspaces');
+        if (workspacesResponse.ok) {
+          const { data } = await workspacesResponse.json();
+          setWorkspaces(data);
+        }
       }
     } catch (error) {
       console.error('Error creating board:', error);
@@ -111,6 +123,13 @@ export function BoardSelector() {
       
       if (selectedBoardId === boardId) {
         setSelectedBoardId(updatedBoards.length > 0 ? updatedBoards[0].id : null);
+      }
+      
+      // Mettre à jour le compteur de boards dans les workspaces
+      const workspacesResponse = await fetch('/api/workspaces');
+      if (workspacesResponse.ok) {
+        const { data } = await workspacesResponse.json();
+        setWorkspaces(data);
       }
     } catch (error) {
       console.error('Error deleting board:', error);
@@ -243,10 +262,11 @@ export function BoardSelector() {
                       variant="ghost"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                       onClick={() => {
-                        if (confirm(`Delete "${board.name}"? This action cannot be undone.`)) {
+                        if (confirm(`⚠️ DELETE BOARD "${board.name}"?\n\nThis will permanently delete:\n• The board\n• All its columns\n• All its cards\n\nThis action cannot be undone.`)) {
                           deleteBoard(board.id);
                         }
                       }}
+                      title="Delete this board"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

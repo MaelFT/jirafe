@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, X, Filter } from 'lucide-react';
-import { type User } from '@/lib/supabase';
+import { type User } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ export function SearchFilters({ onFilterChange }: SearchFiltersProps) {
     router.push(newUrl, { scroll: false });
 
     onFilterChange({ search, assignee, priority });
-  }, [search, assignee, priority]);
+  }, [search, assignee, priority, onFilterChange, router]);
 
   async function loadUsers() {
     try {

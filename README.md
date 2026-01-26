@@ -207,3 +207,10 @@ Développé avec ❤️ pour la gestion de projets moderne.
 
 **Version** : 2.0.0  
 **Dernière mise à jour** : 17 décembre 2024
+
+test
+npm test              # Tous les tests (unit + API)
+npm run test:unit     # Tests unitaires (lib/)
+npm run test:api      # Tests API routes
+npm run test:watch    # Mode watch
+npm run test:coverage # Rapport de couverture

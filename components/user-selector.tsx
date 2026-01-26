@@ -69,7 +69,7 @@ export function UserSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled className="flex items-center gap-2">
           <User className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function UserSelector() {
         <Link href="/profile">
           <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
             <Settings className="h-4 w-4" />
-            Gérer mon compte
+            Manage Account
           </DropdownMenuItem>
         </Link>
         <DropdownMenuItem
@@ -90,7 +90,7 @@ export function UserSelector() {
           className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"
         >
           <LogOut className="h-4 w-4" />
-          Se déconnecter
+          Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

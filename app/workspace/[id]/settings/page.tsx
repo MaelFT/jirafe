@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, ArrowLeft, Check, Trash2, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import type { WorkspaceWithMembers } from '@/lib/supabase';
+import type { WorkspaceWithMembers } from '@/lib/types';
 
 export default function WorkspaceSettingsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -60,16 +60,16 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
 
       if (!response.ok) {
         const { error: err } = await response.json();
-        setError(err || 'Erreur lors de la mise à jour');
+        setError(err || 'Error updating workspace');
         setLoading(false);
         return;
       }
 
-      setSuccess('Informations mises à jour !');
+      setSuccess('Workspace updated!');
       loadWorkspace();
       setLoading(false);
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
@@ -89,23 +89,23 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
 
       if (!response.ok) {
         const { error: err } = await response.json();
-        setError(err || 'Erreur lors de l\'invitation');
+        setError(err || 'Error inviting member');
         setLoading(false);
         return;
       }
 
-      setSuccess('Membre invité avec succès !');
+      setSuccess('Member invited successfully!');
       setInviteEmail('');
       loadWorkspace();
       setLoading(false);
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
 
   async function handleRemoveMember(memberId: string) {
-    if (!confirm('Retirer ce membre du workspace ?')) return;
+    if (!confirm('Remove this member from the workspace?')) return;
 
     try {
       const response = await fetch(`/api/workspaces/${params.id}/members/${memberId}`, {
@@ -113,7 +113,7 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
       });
 
       if (response.ok) {
-        setSuccess('Membre retiré');
+        setSuccess('Member removed');
         loadWorkspace();
       }
     } catch (error) {
@@ -124,16 +124,16 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
   if (!workspace) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-slate-500">Chargement...</div>
+        <div className="text-lg text-slate-500">Loading...</div>
       </div>
     );
   }
 
   const getRoleBadge = (role: string) => {
     const config = {
-      owner: { label: 'Propriétaire', color: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400' },
+      owner: { label: 'Owner', color: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400' },
       admin: { label: 'Admin', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400' },
-      member: { label: 'Membre', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' },
+      member: { label: 'Member', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' },
     };
     const conf = config[role as keyof typeof config] || config.member;
     return <Badge className={conf.color}>{conf.label}</Badge>;
@@ -147,11 +147,11 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
           <Link href="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour
+              Back
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Paramètres de l'espace</h1>
+            <h1 className="text-3xl font-bold">Workspace Settings</h1>
             <p className="text-slate-600 dark:text-slate-400">
               {workspace.name}
             </p>
@@ -173,19 +173,19 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
           </div>
         )}
 
-        {/* Informations */}
+        {/* Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Informations de l'espace</CardTitle>
+            <CardTitle>Workspace Information</CardTitle>
             <CardDescription>
-              Modifiez le nom, l'icône et la description
+              Edit the name, icon, and description
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdateInfo} className="space-y-6">
               {/* Avatar */}
               <div className="space-y-2">
-                <Label>Icône</Label>
+                <Label>Icon</Label>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarFallback className="text-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
@@ -212,7 +212,7 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Nom</Label>
+                <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
                   value={name}
@@ -232,37 +232,37 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
               </div>
 
               <Button type="submit" disabled={loading}>
-                {loading ? 'Enregistrement...' : 'Enregistrer'}
+                {loading ? 'Saving...' : 'Save'}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Membres */}
+        {/* Members */}
         <Card>
           <CardHeader>
-            <CardTitle>Membres ({workspace.members?.length || 0})</CardTitle>
+            <CardTitle>Members ({workspace.members?.length || 0})</CardTitle>
             <CardDescription>
-              Gérez les personnes qui ont accès à cet espace
+              Manage people who have access to this workspace
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Inviter */}
+            {/* Invite */}
             <form onSubmit={handleInviteMember} className="flex gap-2">
               <Input
                 type="email"
-                placeholder="email@exemple.com"
+                placeholder="email@example.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 required
               />
               <Button type="submit" disabled={loading}>
                 <UserPlus className="h-4 w-4 mr-2" />
-                Inviter
+                Invite
               </Button>
             </form>
 
-            {/* Liste */}
+            {/* List */}
             <div className="space-y-2">
               {workspace.members?.map((member) => (
                 <div
@@ -302,5 +302,3 @@ export default function WorkspaceSettingsPage({ params }: { params: { id: string
     </div>
   );
 }
-
-

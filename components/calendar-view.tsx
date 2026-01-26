@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { type BoardWithColumns } from '@/lib/supabase';
+import { type BoardWithColumns } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
@@ -64,11 +64,20 @@ export function CalendarView({ board, onCardClick }: CalendarViewProps) {
   };
 
   const getCardsForDate = (date: Date) => {
-    const dateString = date.toISOString().split('T')[0];
+    // Utiliser la date locale (pas UTC) pour éviter le décalage d'un jour
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
     return allCards.filter(card => {
       if (!card.due_date) return false;
-      const cardDate = new Date(card.due_date).toISOString().split('T')[0];
-      return cardDate === dateString;
+      const cardDate = new Date(card.due_date);
+      const cardYear = cardDate.getFullYear();
+      const cardMonth = String(cardDate.getMonth() + 1).padStart(2, '0');
+      const cardDay = String(cardDate.getDate()).padStart(2, '0');
+      const cardDateString = `${cardYear}-${cardMonth}-${cardDay}`;
+      return cardDateString === dateString;
     });
   };
 

@@ -16,7 +16,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove 
 } from '@dnd-kit/sortable';
-import { type BoardWithColumns, type CardWithDetails } from '@/lib/supabase';
+import { type BoardWithColumns, type CardWithDetails } from '@/lib/types';
 import { useStore } from '@/lib/store';
 import { BoardColumn } from './board-column';
 import { TaskCard } from './task-card';
@@ -47,7 +47,6 @@ import { Plus } from 'lucide-react';
 export function BoardView() {
   const { selectedBoardId, currentUser, viewMode } = useStore();
   const [board, setBoard] = useState<BoardWithColumns | null>(null);
-  const [filteredBoard, setFilteredBoard] = useState<BoardWithColumns | null>(null);
   const [activeCard, setActiveCard] = useState<CardWithDetails | null>(null);
   const [activeColumn, setActiveColumn] = useState<any>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -83,25 +82,30 @@ export function BoardView() {
     }
   }, [selectedBoardId]);
 
-  const applyFilters = useCallback(() => {
-    if (!board) return;
+  // Calcul du board filtré (mémoïsé pour éviter les re-calculs inutiles)
+  const getFilteredBoard = useCallback((): BoardWithColumns | null => {
+    if (!board) return null;
 
-    const filtered = {
+    return {
       ...board,
       columns: board.columns.map((column) => ({
         ...column,
         cards: column.cards.filter((card) => {
+          // Filtre par recherche (titre ou description)
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             const matchesTitle = card.title.toLowerCase().includes(searchLower);
+            const matchesDescription = card.description?.toLowerCase().includes(searchLower);
             const matchesId = card.id.toLowerCase().includes(searchLower);
-            if (!matchesTitle && !matchesId) return false;
+            if (!matchesTitle && !matchesDescription && !matchesId) return false;
           }
 
+          // Filtre par assignee
           if (filters.assignee !== 'all' && card.assignee_id !== filters.assignee) {
             return false;
           }
 
+          // Filtre par priorité
           if (filters.priority !== 'all' && card.priority !== filters.priority) {
             return false;
           }
@@ -110,9 +114,10 @@ export function BoardView() {
         }),
       })),
     };
-
-    setFilteredBoard(filtered);
   }, [board, filters]);
+
+  // Board filtré recalculé à chaque changement
+  const filteredBoard = getFilteredBoard();
 
   useEffect(() => {
     if (selectedBoardId) {
@@ -120,11 +125,6 @@ export function BoardView() {
     }
   }, [selectedBoardId, loadBoard]);
 
-  useEffect(() => {
-    if (board) {
-      applyFilters();
-    }
-  }, [board, filters, applyFilters]);
 
   async function updateColumnName(columnId: string, name: string) {
     try {
@@ -391,12 +391,12 @@ export function BoardView() {
 
       {viewMode === 'list' ? (
         <ListView
-          board={filteredBoard || board}
+          board={filteredBoard!}
           onCardClick={setSelectedCardId}
         />
       ) : viewMode === 'calendar' ? (
         <CalendarView
-          board={filteredBoard || board}
+          board={filteredBoard!}
           onCardClick={setSelectedCardId}
         />
       ) : (
@@ -407,12 +407,12 @@ export function BoardView() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={(filteredBoard || board).columns.map((col) => col.id)}
+            items={filteredBoard!.columns.map((col) => col.id)}
             strategy={horizontalListSortingStrategy}
           >
             <div className="flex-1 overflow-x-auto p-6">
               <div className="flex gap-6 h-full min-w-max">
-                {(filteredBoard || board).columns.map((column) => (
+                {filteredBoard!.columns.map((column) => (
                   <div key={column.id} className="w-[350px]">
                     <BoardColumn
                       column={column}

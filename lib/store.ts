@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, Workspace } from './supabase';
+import type { User, Workspace } from './types';
 
 interface AppStore {
   currentUser: User | null;
@@ -13,6 +13,8 @@ interface AppStore {
   setSelectedBoardId: (boardId: string | null) => void;
   viewMode: 'board' | 'list' | 'calendar';
   setViewMode: (mode: 'board' | 'list' | 'calendar') => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useStore = create<AppStore>()(
@@ -28,9 +30,14 @@ export const useStore = create<AppStore>()(
       setSelectedBoardId: (boardId) => set({ selectedBoardId: boardId }),
       viewMode: 'board',
       setViewMode: (mode) => set({ viewMode: mode }),
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'jirafe-task-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

@@ -25,7 +25,7 @@ export async function query(text: string, params?: any[]) {
   return res;
 }
 
-// Types exportés (identiques à supabase.ts)
+// Types exportés (identiques à types.ts)
 export type User = {
   id: string;
   name: string;

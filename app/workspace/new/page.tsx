@@ -38,19 +38,19 @@ export default function NewWorkspacePage() {
       const { data } = await response.json();
 
       if (!response.ok) {
-        setError(data?.error || 'Erreur lors de la création');
+        setError(data?.error || 'Error creating workspace');
         setLoading(false);
         return;
       }
 
-      // Définir comme workspace actif
+      // Set as active workspace
       setCurrentWorkspace(data);
       
-      // Rediriger vers l'app
+      // Redirect to app
       router.push('/');
       router.refresh();
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
@@ -63,18 +63,18 @@ export default function NewWorkspacePage() {
           <Link href="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour
+              Back
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Créer un espace de travail</h1>
+            <h1 className="text-3xl font-bold">Create a Workspace</h1>
             <p className="text-slate-600 dark:text-slate-400">
-              Créez un nouvel espace pour votre équipe ou projet
+              Create a new space for your team or project
             </p>
           </div>
         </div>
 
-        {/* Erreur */}
+        {/* Error */}
         {error && (
           <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 flex items-start gap-2">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
@@ -82,19 +82,19 @@ export default function NewWorkspacePage() {
           </div>
         )}
 
-        {/* Formulaire */}
+        {/* Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Informations de l'espace</CardTitle>
+            <CardTitle>Workspace Information</CardTitle>
             <CardDescription>
-              Donnez un nom et une identité à votre espace de travail
+              Give your workspace a name and identity
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Avatar */}
               <div className="space-y-2">
-                <Label>Icône de l'espace</Label>
+                <Label>Workspace Icon</Label>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarFallback className="text-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
@@ -120,13 +120,13 @@ export default function NewWorkspacePage() {
                 </div>
               </div>
 
-              {/* Nom */}
+              {/* Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Nom de l'espace *</Label>
+                <Label htmlFor="name">Workspace Name *</Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Mon Entreprise, Projet X, Équipe Design..."
+                  placeholder="My Company, Project X, Design Team..."
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -135,10 +135,10 @@ export default function NewWorkspacePage() {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description (optionnel)</Label>
+                <Label htmlFor="description">Description (optional)</Label>
                 <Textarea
                   id="description"
-                  placeholder="Décrivez l'objectif de cet espace de travail..."
+                  placeholder="Describe the purpose of this workspace..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
@@ -149,11 +149,11 @@ export default function NewWorkspacePage() {
               <div className="flex justify-end gap-2 pt-4">
                 <Link href="/">
                   <Button type="button" variant="outline">
-                    Annuler
+                    Cancel
                   </Button>
                 </Link>
                 <Button type="submit" disabled={loading || !name.trim()}>
-                  {loading ? 'Création...' : 'Créer l\'espace'}
+                  {loading ? 'Creating...' : 'Create Workspace'}
                 </Button>
               </div>
             </form>
@@ -163,5 +163,3 @@ export default function NewWorkspacePage() {
     </div>
   );
 }
-
-

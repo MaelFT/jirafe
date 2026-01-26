@@ -1,6 +1,6 @@
 'use client';
 
-import { type BoardWithColumns } from '@/lib/supabase';
+import { type BoardWithColumns } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Calendar, CheckSquare } from 'lucide-react';

@@ -23,7 +23,6 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Liste d'emojis pour l'avatar
   const avatarOptions = ['👤', '👩‍💼', '👨‍💻', '👩‍🎨', '👨‍🔧', '🦒', '🎨', '⚡', '🚀', '💻', '🎯', '✨'];
 
   useEffect(() => {
@@ -61,21 +60,20 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Erreur lors de la mise à jour');
+        setError(data.error || 'Error updating profile');
         setLoading(false);
         return;
       }
 
-      setSuccess('Profil mis à jour avec succès !');
+      setSuccess('Profile updated successfully!');
       loadUser();
       setLoading(false);
       
-      // Rafraîchir après 1 seconde
       setTimeout(() => {
         router.refresh();
       }, 1000);
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
@@ -86,12 +84,12 @@ export default function ProfilePage() {
     setSuccess('');
 
     if (newPassword !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError('Passwords do not match');
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('Le nouveau mot de passe doit contenir au moins 6 caractères');
+      setError('New password must be at least 6 characters');
       return;
     }
 
@@ -107,18 +105,18 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Erreur lors du changement de mot de passe');
+        setError(data.error || 'Error changing password');
         setLoading(false);
         return;
       }
 
-      setSuccess('Mot de passe modifié avec succès !');
+      setSuccess('Password changed successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setLoading(false);
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Connection error');
       setLoading(false);
     }
   }
@@ -126,7 +124,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-slate-500">Chargement...</div>
+        <div className="text-lg text-slate-500">Loading...</div>
       </div>
     );
   }
@@ -139,13 +137,13 @@ export default function ProfilePage() {
           <Link href="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour
+              Back
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Mon compte</h1>
+            <h1 className="text-3xl font-bold">My Account</h1>
             <p className="text-slate-600 dark:text-slate-400">
-              Gérez vos informations personnelles
+              Manage your personal information
             </p>
           </div>
         </div>
@@ -165,12 +163,12 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Informations du profil */}
+        {/* Profile Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Informations du profil</CardTitle>
+            <CardTitle>Profile Information</CardTitle>
             <CardDescription>
-              Modifiez vos informations personnelles
+              Edit your personal information
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -203,9 +201,9 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Nom */}
+              {/* Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Nom complet</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
@@ -228,24 +226,24 @@ export default function ProfilePage() {
               </div>
 
               <Button type="submit" disabled={loading}>
-                {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                {loading ? 'Saving...' : 'Save Changes'}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Changer le mot de passe */}
+        {/* Change Password */}
         <Card>
           <CardHeader>
-            <CardTitle>Changer le mot de passe</CardTitle>
+            <CardTitle>Change Password</CardTitle>
             <CardDescription>
-              Modifiez votre mot de passe pour sécuriser votre compte
+              Update your password to keep your account secure
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
                   id="currentPassword"
                   type="password"
@@ -256,7 +254,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                <Label htmlFor="newPassword">New Password</Label>
                 <Input
                   id="newPassword"
                   type="password"
@@ -265,12 +263,12 @@ export default function ProfilePage() {
                   required
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Minimum 6 caractères
+                  Minimum 6 characters
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -281,7 +279,7 @@ export default function ProfilePage() {
               </div>
 
               <Button type="submit" disabled={loading}>
-                {loading ? 'Modification...' : 'Changer le mot de passe'}
+                {loading ? 'Updating...' : 'Change Password'}
               </Button>
             </form>
           </CardContent>
@@ -290,5 +288,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-

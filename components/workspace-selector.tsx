@@ -14,27 +14,43 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Check, ChevronDown, Plus, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { Workspace } from '@/lib/supabase';
+import type { Workspace } from '@/lib/types';
 
 export function WorkspaceSelector() {
   const router = useRouter();
-  const { currentWorkspace, setCurrentWorkspace, workspaces, setWorkspaces } = useStore();
+  const { currentWorkspace, setCurrentWorkspace, workspaces, setWorkspaces, _hasHydrated } = useStore();
   const [loading, setLoading] = useState(true);
 
+  // Attendre que le store soit hydraté depuis le localStorage avant de charger
   useEffect(() => {
-    loadWorkspaces();
-  }, []);
+    if (_hasHydrated) {
+      loadWorkspaces();
+    }
+  }, [_hasHydrated]);
 
   async function loadWorkspaces() {
+    // Récupérer le currentWorkspace APRÈS l'hydratation
+    const { currentWorkspace: hydratedWorkspace } = useStore.getState();
+    
     try {
       const response = await fetch('/api/workspaces');
       if (response.ok) {
         const { data } = await response.json();
         setWorkspaces(data);
         
-        // Si pas de workspace actif, sélectionner le premier
-        if (!currentWorkspace && data.length > 0) {
-          setCurrentWorkspace(data[0]);
+        if (data.length > 0) {
+          // Vérifier si le workspace persisté existe toujours
+          const persistedWorkspace = hydratedWorkspace 
+            ? data.find((w: Workspace) => w.id === hydratedWorkspace.id)
+            : null;
+          
+          if (persistedWorkspace) {
+            // Mettre à jour avec les données fraîches (compteurs, etc.)
+            setCurrentWorkspace(persistedWorkspace);
+          } else {
+            // Si pas de workspace actif ou s'il n'existe plus, prendre le premier
+            setCurrentWorkspace(data[0]);
+          }
         }
       }
     } catch (error) {
@@ -45,12 +61,17 @@ export function WorkspaceSelector() {
   }
 
   function handleWorkspaceChange(workspace: Workspace) {
+    const { setSelectedBoardId } = useStore.getState();
+    
+    // Réinitialiser le board sélectionné car on change de workspace
+    setSelectedBoardId(null);
     setCurrentWorkspace(workspace);
+    
     // Recharger la page pour mettre à jour les boards
     router.refresh();
   }
 
-  if (loading || !currentWorkspace) {
+  if (!_hasHydrated || loading || !currentWorkspace) {
     return (
       <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
     );
@@ -75,7 +96,7 @@ export function WorkspaceSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel>Vos espaces de travail</DropdownMenuLabel>
+        <DropdownMenuLabel>Your workspaces</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {workspaces.map((workspace) => (
           <DropdownMenuItem
@@ -91,7 +112,7 @@ export function WorkspaceSelector() {
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate">{workspace.name}</div>
               <div className="text-xs text-slate-500">
-                {(workspace as any).member_count || 0} membre(s) · {(workspace as any).board_count || 0} board(s)
+                {(workspace as any).member_count || 0} member(s) · {(workspace as any).board_count || 0} board(s)
               </div>
             </div>
             {currentWorkspace.id === workspace.id && (
@@ -105,7 +126,7 @@ export function WorkspaceSelector() {
           className="flex items-center gap-2 cursor-pointer text-blue-600"
         >
           <Plus className="h-4 w-4" />
-          Créer un espace de travail
+          Create a workspace
         </DropdownMenuItem>
         {currentWorkspace && (
           <DropdownMenuItem
@@ -113,7 +134,7 @@ export function WorkspaceSelector() {
             className="flex items-center gap-2 cursor-pointer"
           >
             <Settings className="h-4 w-4" />
-            Gérer cet espace
+            Manage this space
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
