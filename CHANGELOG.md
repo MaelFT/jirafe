@@ -1,6 +1,6 @@
 # 📝 Changelog - Jirafe
 
-## [2.0.0] - 17 Décembre 2024
+## [2.0.0]
 
 ### 🔐 Authentification complète ajoutée
 
